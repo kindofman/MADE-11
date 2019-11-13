@@ -33,7 +33,7 @@ public:
     int top() const;
     void push(int key);
     int pop();
-    bool is_empty() { return !size; };
+    bool is_empty() const { return !size; };
     int len() const { return size; };
     void heapify(int* new_arr, int n);
     
