@@ -196,7 +196,7 @@ void execute() {
         int acc = K;
         int temp_arr[K];
         int temp_arr_size = 0;
-        while (my_heap.top() <= acc && !my_heap.is_empty()) {
+        while (!my_heap.is_empty() && my_heap.top() <= acc) {
             int fruit = my_heap.pop();
             temp_arr[temp_arr_size] = fruit;
             temp_arr_size++;
