@@ -17,14 +17,14 @@
 
 using namespace std;
 
-int64_t inversions = 0;
+//int64_t inversions = 0;
 
-template<class T>
-void Merge(T* a, int firstLen, int secondLen, T* c) {
+template<class T, class TLess>
+int64_t Merge(T* a, int firstLen, int secondLen, T* c, int64_t inversions, TLess less) {
     int idx_first = 0;
     int idx_second = firstLen;
     for (int idx_c = 0; idx_c < (firstLen+secondLen); idx_c++) {
-        if ( (a[idx_first] <= a[idx_second] || idx_second > firstLen+secondLen-1) && idx_first < firstLen ) {
+        if ( (less(a[idx_first], a[idx_second]) || idx_second > firstLen+secondLen-1) && idx_first < firstLen ) {
             c[idx_c] = a[idx_first++];
         }
         else {
@@ -34,18 +34,20 @@ void Merge(T* a, int firstLen, int secondLen, T* c) {
             }
         }
     }
+    return inversions;
 }
-template<class T>
-void merge_sort(T* a, int aLen) {
-    if ( aLen <= 1 ) { return; }
+template<class T, class TLess>
+int64_t merge_sort(T* a, int aLen, int64_t inversions, TLess less) {
+    if ( aLen <= 1 ) { return inversions; }
     int firstLen = aLen / 2 + aLen % 2;
     int secondLen = aLen - firstLen;
-    merge_sort( a, firstLen );
-    merge_sort( a + firstLen, secondLen );
+    inversions = merge_sort( a, firstLen , inversions, less );
+    inversions = merge_sort( a + firstLen, secondLen, inversions, less );
     T* c = new T[aLen];
-    Merge( a, firstLen, secondLen, c );
+    inversions = Merge( a, firstLen, secondLen, c, inversions, less);
     memcpy( a, c, sizeof( int ) * aLen );
     delete[] c;
+    return inversions;
 }
 
 bool compare_arrays(int* a, int* b, int len) {
@@ -55,32 +57,6 @@ bool compare_arrays(int* a, int* b, int len) {
     delete[] b;
     
     return true;
-}
-
-void test_merge() {
-    int* a = new int[2]{1, 2};
-    int* c = new int[2];
-    Merge(a, 1, 1, c);
-    assert( compare_arrays(c, new int[2]{1, 2}, 2) );
-    delete[] a, c;
-    
-    a = new int[2]{2, 1};
-    c = new int[2];
-    Merge(a, 1, 1, c);
-    assert( compare_arrays(c, new int[2]{1, 2}, 2) );
-    delete[] a, c;
-    
-    a = new int[3]{1,2,3};
-    c = new int[3];
-    Merge(a, 2, 1, c);
-    assert( compare_arrays(c, new int[3]{1, 2, 3}, 3) );
-    delete[] a, c;
-    
-    a = new int[3]{1,3,2};
-    c = new int[3];
-    Merge(a, 2, 1, c);
-    assert( compare_arrays(c, new int[3]{1, 2, 3}, 3) );
-    delete[] a, c;
 }
 
 class MyArray {
@@ -106,36 +82,6 @@ private:
         return;
     }
 };
-
-//Ниже тот же самый класс для проверки сортировки со значениями типа string
-
-//class MyArray {
-//    int size = 0;
-//    int memory_size = 2;
-//public:
-//    string* array = new string[memory_size];
-//    void add_element(string element) {
-//        array[size++] = element;
-//        if (size == memory_size) { add_memory(); }
-//    }
-//    int get_size() const { return size; }
-//private:
-//    void copy_arr_into_new_arr(string* new_arr) {
-//        for (int i = 0; i < size; i++) { new_arr[i] = array[i]; }
-//    }
-//    void add_memory() {
-//        string* new_arr = new string[memory_size*2];
-//        copy_arr_into_new_arr(new_arr);
-//        delete[] array;
-//        array = new_arr;
-//        memory_size *= 2;
-//        return;
-//    }
-//};
-
-void test_sort() {
-    test_merge();
-}
  
 int main() {
     MyArray array_for_sort;
@@ -143,10 +89,12 @@ int main() {
     getline(cin, line);
     while (!line.empty()) {
         array_for_sort.add_element(stoi(line));
-//        array_for_sort.add_element(line); заменить эту строчку на ту, что выше для проверки string
         getline(cin, line);
     }
-    merge_sort(array_for_sort.array, array_for_sort.get_size());
+    int64_t inversions = merge_sort(array_for_sort.array,
+                                    array_for_sort.get_size(),
+                                    0,
+                                    [](int a, int b) { return a <= b; });
     cout << inversions << endl;
 
     return 0;
