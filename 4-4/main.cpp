@@ -28,7 +28,8 @@
 
 using namespace std;
 
-int partition(unsigned int* a,unsigned int n ) {
+template<class T, class TLess>
+int partition(T* a,unsigned int n, TLess less ) {
     if( n <= 1 ) { return 0; }
     int idx = rand() % n;
     swap( a[idx], a[0] );
@@ -36,7 +37,7 @@ int partition(unsigned int* a,unsigned int n ) {
 
     int i = n - 1, j = n - 1;
     while (i > 0) {
-        if (a[i] >= pivot) {
+        if ( less(pivot, a[i]) ) {
             swap(a[i], a[j--]);
         }
         i--;
@@ -44,23 +45,25 @@ int partition(unsigned int* a,unsigned int n ) {
     swap( a[j], a[0] );
     return j;
 }
-
-void kth_largest(unsigned int* arr, unsigned int n, int k) {
+template<class T, class TLess>
+int kth_largest(T* arr, unsigned int n, int k, TLess less) {
+    int new_k = k;
     int acc = 0;
     int part = 0;
-    part = partition( arr, n );
+    part = partition( arr, n, less );
     while (part + acc != k) {
         if (part + acc > k) {
-            part = partition( arr, part );
+            part = partition( arr, part, less );
         }
         else {
             acc += part + 1;
             n = n - part - 1;
+            new_k = new_k - part - 1;
             arr += part + 1;
-            part = partition( arr, n );
-        }
-    }
-    return;
+            part = partition( arr, n, less );
+       }
+     }
+     return arr[new_k];
 }
 
 int main() {
@@ -70,9 +73,11 @@ int main() {
     for (unsigned int* i = arr; i < arr + size; ++i) {
         cin >> *i;
     }
-    kth_largest(arr, size, k);
-    cout << arr[k] << endl;
-    
+    int res = kth_largest(arr,
+                          size,
+                          k,
+                          [](int a, int b) { return a <= b; });
+    cout << res << endl;
+    delete[] arr;
     return 0;
 }
-
