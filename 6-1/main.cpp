@@ -36,6 +36,7 @@ struct Node {
     Node(int key_) : key(key_) {}
     void add(int new_key);
     void pre_order();
+    Node* pre_order_step();
     
 };
 
@@ -71,6 +72,22 @@ void Node::pre_order() {
     }
 }
 
+Node* Node::pre_order_step() {
+    static vector<Node *> stack;
+    Node* current = this;
+    stack.push_back(current);
+    current = current->left;
+    while (current || !stack.empty()) {
+        if (current) {
+            return current;
+        } else {
+            current = stack.back()->right;
+            stack.pop_back();
+        }
+    }
+    return nullptr;
+}
+
 Node::~Node() {
     queue<Node* > q;
     q.push(this);
@@ -92,7 +109,12 @@ int main() {
         cin >> key;
         root->add(key);
     }
-    root->pre_order();
+    Node* current = root;
+    while ( current ) {
+        cout << current->key << ' ';
+        current = current->pre_order_step();
+    }
     cout << endl;
+    return 0;
 }
 
