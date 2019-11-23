@@ -31,38 +31,54 @@
 #include <memory.h>
 #include <stdint.h>
 #include <vector>
+#include <queue>
 #include <ctime>
 
 #include <assert.h>
 
-using namespace std;
+using std::cin;
+using std::cout;
+using std::vector;
+using std::string;
+using std::overflow_error;
+using std::endl;
 
+struct GetHash {
+    size_t operator() ( const string& key, size_t m ) const {
+        int a = 3571;
+        size_t hash_ = 0;
+        for (int i = 0; i < key.length(); i++) {
+            hash_ = ( hash_ * a + key[i] ) % m;
+        }
+        return hash_;
+    }
+};
+
+template<class T, class H>
 class HashTable {
 public:
-    explicit HashTable(size_t initial_size);
-    ~HashTable() = default;
-    HashTable(const HashTable&) = delete;
-    HashTable(HashTable&&) = delete;
-    HashTable& operator=(const HashTable&) = delete;
-    HashTable& operator=(HashTable&&) = delete;
-
-    bool has(const string& key) const;
-    bool add(const string& key);
-    bool remove(const string& key);
+    explicit HashTable(size_t initial_size, H get_hash);
+    bool has(const T& key) const;
+    bool add(const T& key);
+    bool remove(const T& key);
 
 private:
-    size_t get_hash( const string& key, size_t m ) const;
-    bool is_Nil( const string& key ) { return key != "Deleted" ? key.empty() : true; }
-    size_t probe( size_t hash, int i, const string& key ) const;
-    vector<string> table;
+    const T DELETED_KEY = "Deleted";
+    const T EMPTY = "";
+    H get_hash;
+    bool is_Nil( const T& key ) { return key != DELETED_KEY ? key.empty() : true; }
+    size_t probe( size_t hash, int i, const T& key ) const;
+    vector<T> table;
     size_t limit;
     void rehash();
 };
 
-HashTable::HashTable(size_t initial_size) : table(initial_size, ""), limit(initial_size) {}
+template<class T, class H>
+HashTable<T, H>::HashTable(size_t initial_size, H get_hash) : table(initial_size, EMPTY), limit(initial_size) {}
 
-void HashTable::rehash() {
-    vector<string> temp_table( table.size()*2, "" );
+template<class T, class H>
+void HashTable<T, H>::rehash() {
+    vector<T> temp_table( table.size()*2, EMPTY );
     table.swap( temp_table );
     limit = table.size() * 3 / 4;
     for( int i = 0; i < temp_table.size(); i++ ) {
@@ -72,16 +88,8 @@ void HashTable::rehash() {
     }
 }
 
-size_t HashTable::get_hash(const string& key, size_t m) const {
-    int a = 3571;
-    size_t hash_ = 0;
-    for (int i = 0; i < key.length(); i++) {
-        hash_ = ( hash_ * a + key[i] ) % m;
-    }
-    return hash_;
-}
-
-size_t HashTable::probe(size_t hash, int i, const string& key ) const {
+template<class T, class H>
+size_t HashTable<T, H>::probe(size_t hash, int i, const T& key ) const {
     int sum_of_letters = 0;
     if ( i == 0 ) { return hash; } //если i==0, то не будет лишний раз высчитывать h2
     for ( int i = 0; i < key.length(); i++ ) {
@@ -90,7 +98,8 @@ size_t HashTable::probe(size_t hash, int i, const string& key ) const {
     return (hash + i * ( 2*sum_of_letters + 1 ) ) % table.size();
 }
 
-bool HashTable::has(const string& key) const {
+template<class T, class H>
+bool HashTable<T, H>::has(const T& key) const {
     assert(!key.empty());
     const size_t hash = get_hash(key, table.size());
     for ( int i = 0; i < table.size(); ++i ) {
@@ -105,14 +114,16 @@ bool HashTable::has(const string& key) const {
     throw overflow_error( " no more space for a key " );
 }
 
-bool HashTable::add(const string& key) {
+// Вставка ключа в хеш-таблицу (без учета удаленных элементов).
+template<class T, class H>
+bool HashTable<T, H>::add(const T& key) {
     assert(!key.empty());
     const size_t hash = get_hash(key, table.size());
     for ( int i = 0; i < table.size(); ++i ) {
         size_t idx = probe( hash, i, key );
         if ( table[idx] == key ) { return false; }
         if ( is_Nil( table[idx] ) ) {
-            if ( table[idx] != "Deleted" ) limit--;
+            if ( table[idx] != DELETED_KEY ) limit--;
             table[idx] = key;
             if ( limit == 0 ) rehash();
             return true;
@@ -121,13 +132,14 @@ bool HashTable::add(const string& key) {
     throw overflow_error( " no more space for a key " );
 }
 
-bool HashTable::remove(const string& key) {
+template<class T, class H>
+bool HashTable<T, H>::remove(const T& key) {
     assert(!key.empty());
     const size_t hash = get_hash(key, table.size());
     for ( int i = 0; i < table.size(); ++i ) {
         size_t idx = probe( hash, i, key );
         if ( table[idx] == key ) {
-            table[idx] = "Deleted";
+            table[idx] = DELETED_KEY;
             return true;
         }
         if ( table[idx].empty() ) {
@@ -138,7 +150,8 @@ bool HashTable::remove(const string& key) {
 }
 
 int main() {
-    HashTable table( 8 );
+    GetHash get_hash;
+    HashTable<string, GetHash> table( 8, get_hash );
     char command = ' ';
     string key;
 
@@ -158,4 +171,13 @@ int main() {
     return 0;
 }
 
-
+/*
+ 
+ + hello
+ + bye
+ ? bye
+ + bye
+ - bye
+ ? bye
+ ? hello
+*/
