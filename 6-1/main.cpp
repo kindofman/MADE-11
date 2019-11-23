@@ -11,6 +11,7 @@
 */
 
 
+
 #include <cassert>
 #include <iostream>
 #include <string>
@@ -21,6 +22,10 @@
 #include <ctime>
 
 using namespace std;
+
+struct Print {
+    void operator() (int key) { cout << key << ' '; }
+};
 
 struct Node {
     Node(const Node&) = delete;
@@ -35,8 +40,7 @@ struct Node {
    
     Node(int key_) : key(key_) {}
     void add(int new_key);
-    void pre_order();
-    Node* pre_order_step();
+    void pre_order(Print print);
     
 };
 
@@ -56,12 +60,13 @@ void Node::add(int new_key) {
     new_key < current->key ? current->left = new Node(new_key) : current->right = new Node(new_key);
 }
 
-void Node::pre_order() {
+void Node::pre_order(Print print) {
     vector<Node *> stack;
     Node* current = this;
     while (current || !stack.empty()) {
         if (current) {
-            cout << current->key << ' ';
+            print(current->key);
+//            cout << current->key << ' ';
             stack.push_back(current);
             current = current->left;
             }
@@ -70,22 +75,6 @@ void Node::pre_order() {
             stack.pop_back();
         }
     }
-}
-
-Node* Node::pre_order_step() {
-    static vector<Node *> stack;
-    Node* current = this;
-    stack.push_back(current);
-    current = current->left;
-    while (current || !stack.empty()) {
-        if (current) {
-            return current;
-        } else {
-            current = stack.back()->right;
-            stack.pop_back();
-        }
-    }
-    return nullptr;
 }
 
 Node::~Node() {
@@ -101,6 +90,8 @@ Node::~Node() {
     }
 }
 
+
+
 int main() {
     int size, key;
     cin >> size >> key;
@@ -109,12 +100,10 @@ int main() {
         cin >> key;
         root->add(key);
     }
-    Node* current = root;
-    while ( current ) {
-        cout << current->key << ' ';
-        current = current->pre_order_step();
-    }
+    Print print;
+    root->pre_order(print);
     cout << endl;
     return 0;
 }
+
 
