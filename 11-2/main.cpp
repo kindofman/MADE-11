@@ -13,13 +13,25 @@
 #include <assert.h>
 #include <list>
 #include <vector>
+#define INT_MAX 2147483647
 
 using std::list;
 using std::vector;
 using std::queue;
 using std::cout;
 
-void BFS(vector<int> *adj, int src, int dist[], int* paths, int n) {
+class Graph {
+public:
+    Graph(int v): v(v) { adj.assign(v, {}); };
+    void BFS( vector<vector <int> > adj, int src, int dist[], int* paths, int n );
+    int find_shortest_paths( int s, int n, int w );
+    void add_edge( int u, int v );
+private:
+    const int v;
+    vector<vector <int> > adj;
+};
+
+void Graph::BFS( vector<vector <int> > adj, int src, int dist[], int* paths, int n ) {
     bool* visited = new bool[n];
     for (int i = 0; i < n; i++)
         visited[i] = false;
@@ -49,41 +61,40 @@ void BFS(vector<int> *adj, int src, int dist[], int* paths, int n) {
     delete[] visited;
 }
   
-int find_shortest_paths(vector<int> *adj, int s, int n, int w) {
+int Graph::find_shortest_paths( int s, int n, int w ) {
     int dist[n];
     int* paths = new int[n];
     for (int i = 0; i < n; i++)
-        dist[i] = 2147483647;
+        dist[i] = INT_MAX;
     for (int i = 0; i < n; i++)
         paths[i] = 0;
     BFS(adj, s, dist, paths, n);
     int result = paths[w];
     delete[] paths;
-	return result;
+    return result;
 }
   
-void add_edge(vector<int> *adj, int u, int v) {
+void Graph::add_edge( int u, int v ) {
     adj[u].push_back(v);
+    adj[v].push_back(u);
 }
-
 
 int main() {
     int v_, n;
     std::cin >> v_ >> n;
-    vector <int>* adj = new vector <int>[v_];
-    
+    Graph g(v_);
     for ( int i = 0; i < n; ++i ) {
         int u, v;
         std::cin >> u >> v;
-        add_edge(adj, u, v);
-        add_edge(adj, v, u);
+        g.add_edge( u, v );
     }
     int v, w;
     std::cin >> v >> w;
-    int result = find_shortest_paths(adj, v, v_, w);
-	  cout << result << std::endl;
-    delete[] adj;
+    int result = g.find_shortest_paths( v, v_, w );
+      cout << result << std::endl;
   
     return 0;
 }
+
+
 
