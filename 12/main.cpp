@@ -14,17 +14,13 @@
 
 #include <iostream>
 #include <algorithm>
-//#include <queue>
-//#include <unordered_map>
 #include <map>
 #include <set>
 #include <assert.h>
-#include <list>
 #include <vector>
 #include <fstream>
 #define NIL -1
 
-using std::list;
 using std::vector;
 using std::cout;
 using std::map;
@@ -34,26 +30,17 @@ using std::set;
 
 class Graph {
 public:
-    Graph (const Graph&) = delete;
-    Graph (const Graph&&) = delete;
-    Graph operator=(const Graph&) = delete;
-    Graph operator=(const Graph&&) = delete;
-    ~Graph() { delete[] adj; };
-    
-    Graph(int V): V(V) {
-        adj = new list<int>[V];
-    };
-    const int V;
+    Graph(int V): V(V) { adj.assign(V, {}); };
     void add_edge( int v, int w );
     vector<int> get_bridges();
-    vector<int> bridges;
-    map<pair<int,int>, int> edges_map;
-    set< pair<int,int> > multiple_edges;
-    int cnt = 0;
     
 private:
-    list<int> *adj;
-    void get_bridges_util( int v, bool* visited, int* disc, int* low, int* parent );
+    const int V;
+    int cnt = 0;
+    vector< vector<int> > adj;
+    map< pair<int,int>, int > edges_map;
+    set< pair<int,int> > multiple_edges;
+    void get_bridges_util( int v, vector<bool>& visited, vector<int>& disc, vector<int>& low, vector<int>& parent, vector<int>& bridges );
 };
 
 void Graph::add_edge(int v, int w) {
@@ -70,17 +57,15 @@ void Graph::add_edge(int v, int w) {
     ++cnt;
 }
 
-void Graph::get_bridges_util(int u, bool* visited, int* disc,
-                                int* low, int* parent) {
+void Graph::get_bridges_util(int u, vector<bool>& visited, vector<int>& disc,
+                                vector<int>& low, vector<int>& parent, vector<int>& bridges ) {
     static int time = 0;
     visited[u] = true;
     disc[u] = low[u] = ++time;
-    list<int>::iterator i;
-    for (i = adj[u].begin(); i != adj[u].end(); ++i) {
-        int v = *i;
+    for ( auto v: adj[u] ) {
         if (!visited[v]) {
             parent[v] = u;
-            get_bridges_util(v, visited, disc, low, parent);
+            get_bridges_util( v, visited, disc, low, parent, bridges );
             low[u] = std::min(low[u], low[v]);
             if (low[v] > disc[u]) {
                 if ( multiple_edges.count( {u, v} ) == 0 ) {
@@ -96,25 +81,17 @@ void Graph::get_bridges_util(int u, bool* visited, int* disc,
 }
 
 vector<int> Graph::get_bridges() {
-    bool *visited = new bool[V];
-    int *disc = new int[V];
-    int *low = new int[V];
-    int *parent = new int[V];
-
-    for ( int i = 0; i < V; ++i ) {
-        parent[i] = NIL;
-        visited[i] = false;
-    }
+    vector<bool> visited(V, false);
+    vector<int> disc(V);
+    vector<int> low(V);
+    vector<int> parent(V, NIL);
+    vector<int> bridges;
 
     for ( int i = 0; i < V; ++i ) {
         if (visited[i] == false)
-            get_bridges_util(i, visited, disc, low, parent);
+            get_bridges_util(i, visited, disc, low, parent, bridges);
     }
     sort( bridges.begin(), bridges.end() );
-    delete[] visited;
-    delete[] disc;
-    delete[] low;
-    delete[] parent;
     return bridges;
 }
 
@@ -133,7 +110,7 @@ int main() {
         fin >> v >> w;
         g.add_edge(v-1, w-1);
     }
-    vector<int> bridges = g.get_bridges();
+    vector<int>&& bridges = g.get_bridges();
     fout << bridges.size() << std::endl;
     for ( auto& it: bridges ) {
         fout << it + 1 << ' ';
@@ -146,63 +123,3 @@ int main() {
 }
 
 
-//int main() {
-//    int n, m;
-//    std::cin >> n >> m;
-//    Graph g(n);
-//    for ( int i = 0; i < m; ++i ) {
-//        int v, w;
-//        std::cin >> v >> w;
-//        g.add_edge(v-1, w-1);
-//    }
-//    vector<int>&& bridges = g.get_bridges();
-//    cout << bridges.size() << std::endl;
-//    for ( auto& num: bridges ) {
-//        cout << num + 1 << ' ';
-//    }
-//    return 0;
-//}
-
-
-/* тесты
- 
- 6 7
- 1 2
- 2 3
- 3 4
- 1 3
- 4 5
- 4 6
- 5 6
- 1: 3
- 
- 5 5
- 2 1
- 1 3
- 3 2
- 1 4
- 4 5
- 2: 4, 5
- 
- 4 3
- 1 2
- 2 3
- 3 4
- 3: 1, 2, 3
- 
- 5 4
- 1 2
- 2 3
- 3 4
- 4 1
- 
- 6 7
- 1 2
- 2 3
- 2 4
- 2 5
- 5 6
- 3 4
- 4 5
- 2: 1, 5
- */
