@@ -13,6 +13,7 @@
 
 
 #include <iostream>
+#include <fstream>
 #include <algorithm>
 #include <queue>
 #include <unordered_map>
@@ -20,7 +21,6 @@
 #include <list>
 #include <vector>
 #include <cmath>
-#define INT_MAX 2147483647
 
 using std::vector;
 using std::queue;
@@ -48,7 +48,7 @@ public:
     void __get_optimal_path( int num, vector<bool> visited, int start, double result, int prev );
     double get_optimal_path( int num );
     double main_DFS();
-    
+
 private:
     const vector<Point> vertices;
     vector< vector<int> > adj;
@@ -67,7 +67,7 @@ double Graph::get_distance( int v1, int v2 ) const {
 //    cout << "x: " << x << ", y: " << y << ", dist: " << sqrt( x*x + y*y ) << std::endl;
     return sqrt( x*x + y*y );
 }
-  
+
 void Graph::add_edge( int u, int v ) {
     adj[u].push_back( v );
     adj[v].push_back( u );
@@ -151,7 +151,7 @@ double Graph::main_DFS() {
     double dist = 0;
     visited[start] = true;
     DFS( visited, dist, start );
-    dist += get_distance( start, last_vertex );    
+    dist += get_distance( start, last_vertex );
     return dist;
 }
 
@@ -166,7 +166,7 @@ void Graph::DFS( vector<bool>& visited, double& dist, int prev ) {
 }
 
 double generate_gaussian_noise(double mu, double sigma) {
-    
+
     static const double epsilon = std::numeric_limits<double>::min();
     static const double two_pi = 2.0*3.14159265358979323846;
 
@@ -201,11 +201,17 @@ vector<Point> generate_points( double mu, double sigma, int size ) {
 }
 
 void make_experiment( int N_start, int N_end, int n_each ) {
+    std::ofstream myfile;
+    myfile.open ("/Users/User/Desktop/example.csv");
+    myfile << "n,absolute opt,absolute,mean,min,max,median,percentile(98)\n";
     for ( int N = N_start; N <= N_end; ++ N ) {
         double sum = 0;
         double sum_opt = 0;
         double squares = 0;
         double squares_opt = 0;
+        double min = 2;
+        double max = -1;
+        vector<double> values;
         for ( int i = 0; i < n_each; ++i ) {
             vector<Point> points = generate_points( 0 , 1, N );
             Graph g( points );
@@ -213,38 +219,46 @@ void make_experiment( int N_start, int N_end, int n_each ) {
             double current = g.main_DFS();
             sum += current;
             squares += ( current * current );
-            
+            auto start = std::chrono::high_resolution_clock::now();
             double current_opt = g.get_optimal_path( N );
+            auto finish = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = finish - start;
+//            std::cout << "Elapsed time: " << elapsed.count() << " s\n";
             sum_opt += current_opt;
             squares_opt += ( current_opt * current_opt );
-            
-            
+            if ( (current_opt / current < min) && (current_opt / current > 0 ) ) { min = current_opt / current; }
+            if ( current_opt / current > max ) { max = current_opt / current; }
+            values.push_back( current_opt / current );
+
+
         }
         double mean = sum / n_each;
         //Вначале сигма будет дисперсией
         double sigma = ( squares - 2 * mean * sum + n_each * mean * mean ) / n_each;
         sigma = sqrt( sigma );
         cout << "        N = " << N << "         " << std::endl;
-        cout << "mean = " << mean << ", sigma = " << sigma << std::endl;
+//        cout << "mean = " << mean << ", sigma = " << sigma << std::endl;
         //t квантиль для n_each = 100 будет 1.6602
-        cout << "Доверительный интервал для приближенного решения\n" << mean << " ± " << 1.6602 * sigma / sqrt(n_each) << std::endl;
-        
+//        cout << "Доверительный интервал для приближенного решения\n" << mean << " ± " << 1.6602 * sigma / sqrt(n_each) << std::endl;
+
         double mean_opt = sum_opt / n_each;
         double sigma_opt = ( squares_opt - 2 * mean_opt + n_each * mean_opt * mean_opt ) / n_each;
         sigma_opt = sqrt( sigma_opt );
-        cout << "mean_opt = " << mean_opt << ", sigma_opt = " << sigma_opt << std::endl;
-        cout << "Доверительный интервал для точного решения\n" << mean_opt << " ± " << 1.6602 * sigma_opt / sqrt(n_each) << std::endl;
+//        cout << "mean_opt = " << mean_opt << ", sigma_opt = " << sigma_opt << std::endl;
+//        cout << "Доверительный интервал для точного решения\n" << mean_opt << " ± " << 1.6602 * sigma_opt / sqrt(n_each) << std::endl;
         cout << std::endl;
-        
+        sort( values.begin(), values.end() );
+        double median = values[values.size() / 2];
+        double percentile = values[n_each * 0.98];
+        myfile << N << ',' << mean_opt << ',' << mean << ',' << mean_opt/mean << ',' << min << ',' << max << ',' << median << ',' << percentile << '\n';
+
     }
+    myfile.close();
 }
 
 int main() {
-    make_experiment( 2, 10, 100 );
+//    make_experiment( 2, 10, 100 );
+    cout << "Вывод: \n1)В среднем результат приближенного решения удовлетворителен для всех рассматриваемых n. Меньше, чем 0.65 отношение оптимального и приближенного решения не опускалось. Однако есть тенденция. С увеличением n приближенное решение становится монотонно хуже. Необходимо дальнейшее исследование.\n\n2)Если в среднем приближенное решение показывает себя хорошо, то в худшем случае результат значительно хуже. Для n = 10 соотношение равно 0.2\n\n";
     return 0;
 }
-/*
- Приближенное решение: 110.646
- Минимальный путь: 99.1215
- Число перестановок: 479001600
- */
+
