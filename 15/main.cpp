@@ -27,6 +27,8 @@ using std::queue;
 using std::cout;
 using std::pair;
 
+std::string PATH_TO_EXCEL_TABLE = "example1.csv";
+
 struct Point {
     Point(double x, double y): x(x), y(y) {};
     const double x;
@@ -202,7 +204,7 @@ vector<Point> generate_points( double mu, double sigma, int size ) {
 
 void make_experiment( int N_start, int N_end, int n_each ) {
     std::ofstream myfile;
-    myfile.open ("/Users/User/Desktop/example.csv");
+    myfile.open (PATH_TO_EXCEL_TABLE);
     myfile << "n,absolute opt,absolute,mean,min,max,median,percentile(98)\n";
     for ( int N = N_start; N <= N_end; ++ N ) {
         double sum = 0;
