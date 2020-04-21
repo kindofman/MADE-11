@@ -17,7 +17,6 @@
 
 using namespace std;
 
-//int64_t inversions = 0;
 
 template<class T, class TLess>
 int64_t Merge(T* a, int firstLen, int secondLen, T* c, int64_t inversions, TLess less) {
